@@ -5,54 +5,97 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Text;
 using System.IO;
+using System.Linq;
 
 namespace Webserver
 {
     public class HTTPServer
     {
-        TcpListener server;
-
+        private TcpListener server;
+        private Dictionary<(string verb, string path), Action<RequestContext, StreamWriter>> routes = new Dictionary<(string verb, string path), Action<RequestContext, StreamWriter>>();
         public HTTPServer(int port)
         {
             server = new TcpListener(IPAddress.Any, port);
+            Task t = new Task(Start);
+            t.Start();
         }
-
+        //Ok,Created,NotFound,BadRequest,InternalServerError,methodNotAllowed(get auf post route), LengthRequired
         public void Start()
         {
             server.Start();
-            List<Task> clients = new List<Task>();
             while (true)
             {
-                Task clienttask = new Task(HandleClient);
-                clienttask.Start();
-                clients.Add(clienttask);
+                TcpClient client = server.AcceptTcpClient();
+                Task.Run(() => HandleClient(client));
             }
         }
-        private void HandleClient()
+        public void RegisterRoute(string verb, string path, Action<RequestContext, StreamWriter> action) => routes.Add((verb, path), action);
+        private void HandleClient(TcpClient client)
         {
-            using var client = server.AcceptTcpClient();
-            Console.WriteLine("Client connected");
             using StreamReader sr = new StreamReader(client.GetStream());
             using StreamWriter sw = new StreamWriter(client.GetStream());
-            string message = null;
-            while (true)
+            Dictionary<string, string> header = new Dictionary<string, string>();
+            Console.WriteLine("Client connected");
+
+            string message = sr.ReadLine(); //Erste Line von dem HTTP Request
+            string[] splits = message.Split(" ");          
+            string verb = splits[0]; 
+            string path = splits[1];
+            string httpVersion = splits[2];
+
+            Console.WriteLine("Headers: ");
+            while (!sr.EndOfStream)
             {
-                while ((message = sr.ReadLine()) != "")
-                {
-                    // Translate data bytes to a ASCII string.
-                    message = sr.ReadLine();
-                    Console.WriteLine(message);
-                    // Process the data sent by the client.
-                }
-                SendSuccess(sw);
+                message = sr.ReadLine();
+                if (string.IsNullOrWhiteSpace(message))
+                    break;
+                Console.WriteLine(message);
+                int indexof = message.IndexOf(':');
+
+                if (indexof < 0)
+                    continue;
+
+                header.Add(message.Substring(0, indexof), message.Substring(indexof + 1).Trim(' '));
             }
-            
+
+            var contentset=header.Where((val) => val.Key == "Content-Length").FirstOrDefault();
+            int contentlength=0;
+            char[] payload = new char[contentlength];
+            if (!int.TryParse(contentset.Value, out contentlength)){
+
+            }
+            int requestedID = 0;
+            string h = path.Substring(path.LastIndexOf('/')+1);
+            requestedID = int.Parse(h);
+            sr.ReadBlock(payload, 0, contentlength);
+            RequestContext rc = new RequestContext(verb, path, httpVersion, header, new string(payload), requestedID);
+            var res = routes.Where((keyval, action) =>
+            {
+                int indexofSlash = keyval.Key.path.LastIndexOf('/');
+                Console.WriteLine(path.Substring(0, indexofSlash));
+                return keyval.Key.verb == verb && keyval.Key.path.Trim('*') == path.Substring(0, indexofSlash+1);
+            }).FirstOrDefault();
+            if (res.Value == null)
+            {
+                Console.WriteLine("NotFound");
+                SendError(sw,HttpStatusCode.NotFound);
+                return;
+            }
+            res.Value(rc, sw);
+            //SendSuccess(sw, "");
         }
-        private void SendSuccess(StreamWriter stream)
+        public static void SendSuccess(StreamWriter stream, HttpStatusCode statuscode, string message)
         {
-            string message = "test";
-            string response = $"HTTP/1.1 200 OK\nContent-Length: {message.Length}\nContent-Type: text/plain; charset=utf-8\n\n{message}";
-            Console.WriteLine(response);
+            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}\nContent-Length: {message.Length}\nContent-Type: text/plain; charset=utf-8\n\n{message}";
+            //Console.WriteLine(response);
+            stream.WriteLine(response);
+            stream.Flush();
+        }
+        public static void SendError(StreamWriter stream, HttpStatusCode statuscode)
+        {
+            string message = "Ressource Not Found";
+            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}\nContent-Length: {message.Length}\nContent-Type: text/plain; charset=utf-8\n\n{message}";
+            //Console.WriteLine(response);
             stream.WriteLine(response);
             stream.Flush();
         }
