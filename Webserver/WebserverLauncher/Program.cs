@@ -28,7 +28,7 @@ namespace WebserverLauncher
                 string result = m.GetMessage(rc.Requestedfield);
                 if(result==null)
                 {
-                    HTTPServer.SendError(sw,HttpStatusCode.InternalServerError);
+                    HTTPServer.SendError(sw,HttpStatusCode.NotFound);
                     return;
                 }
                 HTTPServer.SendSuccess(sw, HttpStatusCode.OK,result);

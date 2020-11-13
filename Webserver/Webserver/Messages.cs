@@ -14,7 +14,7 @@ namespace Webserver
             string res = "";
             foreach (var item in messages)
             {
-                res+=item+"\n";
+                res+=(item != null)?item+"\n":"";
             }
             return res;
         }

@@ -22,12 +22,21 @@ namespace Webserver
         //Ok,Created,NotFound,BadRequest,InternalServerError,methodNotAllowed(get auf post route), LengthRequired
         public void Start()
         {
-            server.Start();
-            while (true)
+            try
             {
-                TcpClient client = server.AcceptTcpClient();
-                Task.Run(() => HandleClient(client));
+                server.Start();
+                while (true)
+                {
+                    TcpClient client = server.AcceptTcpClient();
+                    Task.Run(() => HandleClient(client));
+                }
             }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+                
+            }
+            
         }
         public void RegisterRoute(string verb, string path, Action<RequestContext, StreamWriter> action) => routes.Add((verb, path), action);
         private void HandleClient(TcpClient client)
@@ -60,20 +69,18 @@ namespace Webserver
 
             var contentset=header.Where((val) => val.Key == "Content-Length").FirstOrDefault();
             int contentlength=0;
+            int.TryParse(contentset.Value, out contentlength);
             char[] payload = new char[contentlength];
-            if (!int.TryParse(contentset.Value, out contentlength)){
-
-            }
             int requestedID = 0;
             string h = path.Substring(path.LastIndexOf('/')+1);
-            requestedID = int.Parse(h);
-            sr.ReadBlock(payload, 0, contentlength);
+            int.TryParse(h, out requestedID);
+            sr.ReadBlock(payload);
             RequestContext rc = new RequestContext(verb, path, httpVersion, header, new string(payload), requestedID);
             var res = routes.Where((keyval, action) =>
             {
-                int indexofSlash = keyval.Key.path.LastIndexOf('/');
+                int indexofSlash = path.LastIndexOf('/');
                 Console.WriteLine(path.Substring(0, indexofSlash));
-                return keyval.Key.verb == verb && keyval.Key.path.Trim('*') == path.Substring(0, indexofSlash+1);
+                return keyval.Key.verb == verb && keyval.Key.path.Trim('*') == (indexofSlash == 0 ? path : path.Substring(0, indexofSlash + 1));
             }).FirstOrDefault();
             if (res.Value == null)
             {
