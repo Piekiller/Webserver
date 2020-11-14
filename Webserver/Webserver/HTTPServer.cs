@@ -11,15 +11,18 @@ namespace Webserver
 {
     public class HTTPServer
     {
-        private TcpListener server;
+        private ITcpListener server;
         private Dictionary<(string verb, string path), Action<RequestContext, StreamWriter>> routes = new Dictionary<(string verb, string path), Action<RequestContext, StreamWriter>>();
         public HTTPServer(int port)
         {
-            server = new TcpListener(IPAddress.Any, port);
+            server = new MyTcpListener(port);
             Task t = new Task(Start);
             t.Start();
         }
-        //Ok,Created,NotFound,BadRequest,InternalServerError,methodNotAllowed(get auf post route), LengthRequired
+        public HTTPServer()
+        {
+
+        }
         public void Start()
         {
             try
@@ -27,22 +30,21 @@ namespace Webserver
                 server.Start();
                 while (true)
                 {
-                    TcpClient client = server.AcceptTcpClient();
+                    ITcpClient client = server.AcceptTcpClient();
                     Task.Run(() => HandleClient(client));
                 }
             }
             catch(Exception e)
             {
                 Console.WriteLine(e);
-                
             }
             
         }
         public void RegisterRoute(string verb, string path, Action<RequestContext, StreamWriter> action) => routes.Add((verb, path), action);
-        private void HandleClient(TcpClient client)
+        public void HandleClient(ITcpClient client)
         {
-            using StreamReader sr = new StreamReader(client.GetStream());
-            using StreamWriter sw = new StreamWriter(client.GetStream());
+            using StreamReader sr = new StreamReader(client.GetReadStream());
+            using StreamWriter sw = new StreamWriter(client.GetWriteStream());
             Dictionary<string, string> header = new Dictionary<string, string>();
             Console.WriteLine("Client connected");
 
@@ -100,8 +102,7 @@ namespace Webserver
         }
         public static void SendError(StreamWriter stream, HttpStatusCode statuscode)
         {
-            string message = "Ressource Not Found";
-            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}\nContent-Length: {message.Length}\nContent-Type: text/plain; charset=utf-8\n\n{message}";
+            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}";
             //Console.WriteLine(response);
             stream.WriteLine(response);
             stream.Flush();
