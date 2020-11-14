@@ -45,65 +45,75 @@ namespace Webserver
         {
             using StreamReader sr = new StreamReader(client.GetReadStream());
             using StreamWriter sw = new StreamWriter(client.GetWriteStream());
-            Dictionary<string, string> header = new Dictionary<string, string>();
             Console.WriteLine("Client connected");
 
             string message = sr.ReadLine(); //Erste Line von dem HTTP Request
-            string[] splits = message.Split(" ");          
-            string verb = splits[0]; 
+            string[] splits = message.Split(" ");
+            string verb = splits[0];
             string path = splits[1];
             string httpVersion = splits[2];
+            Dictionary<string, string> header = ReadHeaders(sr);
+            RequestContext rc = ReadPayload(sr, path, header, verb, httpVersion);
+            KeyValuePair<(string verb, string path), Action<RequestContext, StreamWriter>> res = GetBestRoute(verb, path);
+            if (res.Value == null)
+            {
+                SendError(sw, HttpStatusCode.NotFound);
+                return;
+            }
+            res.Value(rc, sw);
+        }
 
+        private KeyValuePair<(string verb, string path), Action<RequestContext, StreamWriter>> GetBestRoute(string verb, string path)
+        {
+            return routes.Where((keyval, action) =>
+            {
+                int indexofSlash = path.LastIndexOf('/');
+                return keyval.Key.verb == verb && keyval.Key.path.Trim('*') == (indexofSlash == 0 ? path : path.Substring(0, indexofSlash + 1));
+            }).FirstOrDefault();
+        }
+
+        private RequestContext ReadPayload(StreamReader sr, string path, Dictionary<string, string> header,string verb,string httpVersion)
+        {
+            Console.WriteLine("Payload: ");
+            var contentset = header.Where((val) => val.Key == "Content-Length").FirstOrDefault();
+            int contentlength = 0;
+            int.TryParse(contentset.Value, out contentlength);//If contentlength not parsable content empty
+            char[] payload = new char[contentlength];
+            int requestedID = 0;
+            string h = path.Substring(path.LastIndexOf('/') + 1);
+            int.TryParse(h, out requestedID);
+            sr.ReadBlock(payload);
+            Console.WriteLine(payload);
+            return new RequestContext(verb, path, httpVersion, header, new string(payload), requestedID);
+        }
+        private Dictionary<string,string> ReadHeaders(StreamReader sr)
+        {
+            Dictionary<string, string> header = new Dictionary<string, string>();
+            string message = null;
             Console.WriteLine("Headers: ");
             while (!sr.EndOfStream)
             {
                 message = sr.ReadLine();
-                if (string.IsNullOrWhiteSpace(message))
+                if (string.IsNullOrWhiteSpace(message))//Bei Leerzeile, also Head Block Ende
                     break;
                 Console.WriteLine(message);
-                int indexof = message.IndexOf(':');
-
+                int indexof = message.IndexOf(':');//get index of first : in case of host: localhost:10000
                 if (indexof < 0)
                     continue;
-
                 header.Add(message.Substring(0, indexof), message.Substring(indexof + 1).Trim(' '));
             }
-
-            var contentset=header.Where((val) => val.Key == "Content-Length").FirstOrDefault();
-            int contentlength=0;
-            int.TryParse(contentset.Value, out contentlength);
-            char[] payload = new char[contentlength];
-            int requestedID = 0;
-            string h = path.Substring(path.LastIndexOf('/')+1);
-            int.TryParse(h, out requestedID);
-            sr.ReadBlock(payload);
-            RequestContext rc = new RequestContext(verb, path, httpVersion, header, new string(payload), requestedID);
-            var res = routes.Where((keyval, action) =>
-            {
-                int indexofSlash = path.LastIndexOf('/');
-                Console.WriteLine(path.Substring(0, indexofSlash));
-                return keyval.Key.verb == verb && keyval.Key.path.Trim('*') == (indexofSlash == 0 ? path : path.Substring(0, indexofSlash + 1));
-            }).FirstOrDefault();
-            if (res.Value == null)
-            {
-                Console.WriteLine("NotFound");
-                SendError(sw,HttpStatusCode.NotFound);
-                return;
-            }
-            res.Value(rc, sw);
-            //SendSuccess(sw, "");
+            return header;
         }
+
         public static void SendSuccess(StreamWriter stream, HttpStatusCode statuscode, string message)
         {
             string response = $"HTTP/1.1 {(int)statuscode} {statuscode}\nContent-Length: {message.Length}\nContent-Type: text/plain; charset=utf-8\n\n{message}";
-            //Console.WriteLine(response);
             stream.WriteLine(response);
             stream.Flush();
         }
         public static void SendError(StreamWriter stream, HttpStatusCode statuscode)
         {
-            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}";
-            //Console.WriteLine(response);
+            string response = $"HTTP/1.1 {(int)statuscode} {statuscode}\nContent-Length: 0\n";
             stream.WriteLine(response);
             stream.Flush();
         }
