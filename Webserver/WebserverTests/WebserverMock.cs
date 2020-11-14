@@ -21,7 +21,7 @@ namespace WebserverTests
             client.Setup(c => c.GetWriteStream()).Returns(ws);
             var server = new Mock<HTTPServer>();
             server.Object.HandleClient(client.Object);
-            Assert.AreEqual("HTTP/1.1 404 NotFound\r\n", Encoding.UTF8.GetString(ws.ToArray()));
+            Assert.AreEqual("HTTP/1.1 404 NotFound\nContent-Length: 0\n\r\n", Encoding.UTF8.GetString(ws.ToArray()));
         }
     }
 }
