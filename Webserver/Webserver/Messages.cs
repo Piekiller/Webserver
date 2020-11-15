@@ -7,7 +7,8 @@ namespace Webserver
 {
     public class Messages
     {
-        string[] messages = new string[1000];
+        public const int SIZE=100;
+        string[] messages = new string[SIZE];
         static int counter = 0;
         public string GetMessages()
         {
@@ -20,28 +21,31 @@ namespace Webserver
         }
         public int PostMessage(string message)
         {
+            if (counter - 1 >= SIZE)
+                return -1;
             messages[counter]=message;
             counter++;
+
             return counter;
         }
         public string GetMessage(int id)
         {
-            if (id > counter&&id-1<0)
+            if (id > counter||id-1<0||id-1>SIZE)
                 return null;
             return messages[id-1];
         }
 
-        public bool UpdateMessage(int id, string message)
+        public bool PutMessage(int id, string message)
         {
             Console.WriteLine(id +" "+message);
-            if (id - 1 < 0)
+            if (id - 1 < 0 || id - 1 > SIZE)
                 return false;
             messages[id-1] = message;
             return true;
         }
         public bool DeleteMessage(int id)
         {
-            if (id - 1 < 0)
+            if (id - 1 < 0||id-1> SIZE)
                 return false;
             messages[id-1]=null;
             counter--;
