@@ -35,7 +35,7 @@ namespace WebserverLauncher
             });
             http.RegisterRoute("PUT", "/messages/*", (RequestContext rc, StreamWriter sw) =>
             {
-                if (!m.UpdateMessage(rc.Requestedfield, rc.Payload))
+                if (!m.PutMessage(rc.Requestedfield, rc.Payload))
                     HTTPServer.SendError(sw,HttpStatusCode.NotFound);
                 HTTPServer.SendSuccess(sw, HttpStatusCode.Created,"" );
             });
