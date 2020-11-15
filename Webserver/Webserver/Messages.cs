@@ -30,7 +30,7 @@ namespace Webserver
         }
         public string GetMessage(int id)
         {
-            if (id > counter||id-1<0||id-1>SIZE)
+            if (id-1<0||id-1>SIZE)
                 return null;
             return messages[id-1];
         }
