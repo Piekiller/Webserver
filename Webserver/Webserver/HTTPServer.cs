@@ -40,7 +40,7 @@ namespace Webserver
             }
             
         }
-        public void RegisterRoute(string verb, string path, Action<RequestContext, StreamWriter> action) => routes.Add((verb, path), action);
+        public bool RegisterRoute(string verb, string path, Action<RequestContext, StreamWriter> action)=>routes.TryAdd((verb, path), action);
         public void HandleClient(ITcpClient client)
         {
             using StreamReader sr = new StreamReader(client.GetReadStream());
@@ -49,6 +49,11 @@ namespace Webserver
 
             string message = sr.ReadLine(); //Erste Line von dem HTTP Request
             string[] splits = message.Split(" ");
+            if (splits.Length < 3)
+            {
+                SendError(sw, HttpStatusCode.BadRequest);
+                return;
+            }
             string verb = splits[0];
             string path = splits[1];
             string httpVersion = splits[2];
