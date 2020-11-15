@@ -13,7 +13,6 @@ namespace WebserverLauncher
         {
             HTTPServer http = new HTTPServer(10000);
             Messages m = new Messages();
-            string tes = "";
             http.RegisterRoute("GET", "/messages", (RequestContext rc, StreamWriter sw)=>
             {
                 HTTPServer.SendSuccess(sw, HttpStatusCode.OK,m.GetMessages());
