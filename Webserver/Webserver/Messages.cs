@@ -45,7 +45,7 @@ namespace Webserver
         }
         public bool DeleteMessage(int id)
         {
-            if (id - 1 < 0||id-1> SIZE)
+            if (id - 1 < 0||id-1> SIZE||messages[id-1]==null)
                 return false;
             messages[id-1]=null;
             counter--;
