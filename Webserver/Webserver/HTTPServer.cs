@@ -16,8 +16,6 @@ namespace Webserver
         public HTTPServer(int port)
         {
             server = new MyTcpListener(port);
-            Task t = new Task(Start);
-            t.Start();
         }
         public HTTPServer()
         {
@@ -48,8 +46,10 @@ namespace Webserver
             Console.WriteLine("Client connected");
 
             string message = sr.ReadLine(); //Erste Line von dem HTTP Request
+            Console.WriteLine("\nFirst Line: ");
+            Console.WriteLine(message);
             string[] splits = message.Split(" ");
-            if (splits.Length < 3)
+            if (splits.Length < 3)//Bei zu wenigen Parametern BadRequest
             {
                 SendError(sw, HttpStatusCode.BadRequest);
                 return;
@@ -79,7 +79,7 @@ namespace Webserver
 
         private RequestContext ReadPayload(StreamReader sr, string path, Dictionary<string, string> header,string verb,string httpVersion)
         {
-            Console.WriteLine("Payload: ");
+            Console.WriteLine("\nPayload: ");
             var contentset = header.Where((val) => val.Key == "Content-Length").FirstOrDefault();
             int contentlength = 0;
             int.TryParse(contentset.Value, out contentlength);//If contentlength not parsable content empty
@@ -95,7 +95,7 @@ namespace Webserver
         {
             Dictionary<string, string> header = new Dictionary<string, string>();
             string message = null;
-            Console.WriteLine("Headers: ");
+            Console.WriteLine("\nHeaders: ");
             while (!sr.EndOfStream)
             {
                 message = sr.ReadLine();

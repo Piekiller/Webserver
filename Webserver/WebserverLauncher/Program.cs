@@ -12,7 +12,7 @@ namespace WebserverLauncher
         static void Main(string[] args)
         {
             HTTPServer http = new HTTPServer(10000);
-            Messages m = new Messages();
+            Messages m = new Messages();//Register Route with the Action below
             http.RegisterRoute("GET", "/messages", (RequestContext rc, StreamWriter sw)=>
             {
                 HTTPServer.SendSuccess(sw, HttpStatusCode.OK,m.GetMessages());
@@ -44,8 +44,7 @@ namespace WebserverLauncher
                     HTTPServer.SendError(sw,HttpStatusCode.NotFound);
                 HTTPServer.SendSuccess(sw, HttpStatusCode.OK, "");
             });
-            http.Start();
-            Thread.Sleep(5000);           
+            http.Start();       
             Console.ReadKey();
         }
     }
