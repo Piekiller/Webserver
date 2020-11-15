@@ -21,7 +21,7 @@ namespace WebserverTests
         {
             HTTPServer server = new HTTPServer();
             bool status = server.RegisterRoute("GET", "/messages", (RequestContext rc, StreamWriter sw) => { });
-            bool status = server.RegisterRoute("GET", "/messages", (RequestContext rc, StreamWriter sw) => { });
+            status = server.RegisterRoute("GET", "/messages", (RequestContext rc, StreamWriter sw) => { });
             Assert.AreEqual(status, false);
         }
     }
