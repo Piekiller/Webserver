@@ -23,7 +23,7 @@ namespace WebserverTests
             messages.PostMessage("Message1");
             string res = messages.GetMessages();
 
-            Assert.AreEqual("Message1", res);
+            Assert.AreEqual("Message1\n", res);
         }
         [Test]
         public void TestPostMessages()
@@ -38,7 +38,7 @@ namespace WebserverTests
         public void TestPutMessages()
         {
             Messages messages = new Messages();
-            messages.UpdateMessage(1,"Message1");
+            messages.PutMessage(1,"Message1");
             string res = messages.GetMessage(1);
             Assert.AreEqual("Message1", res);
         }
@@ -46,9 +46,9 @@ namespace WebserverTests
         public void TestPutMessagesError()
         {
             Messages messages = new Messages();
-            messages.UpdateMessage(1001, "Message1");
+            messages.PutMessage(1001, "Message1");
             string res = messages.GetMessage(1);
-            Assert.AreEqual("Message1", res);
+            Assert.AreEqual(null, res);
         }
         [Test]
         public void TestDeleteMessages()
